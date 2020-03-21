@@ -1,11 +1,19 @@
 language: cpp
-dist: xenial
 
 addons:
   apt:
     packages:
       - libcppunit-dev
       - cmake
+  homebrew:
+    packages:
+      - cppunit
+      - cmake
+    update: true
+
+os:
+  - linux
+  - osx
 
 compiler:
   - clang
@@ -23,6 +31,11 @@ env:
   - CONF="-DUSE_TAGGING=false -DGC_TYPE=GENERATIONAL -DCACHE_INTEGER=false"
   - CONF="-DUSE_TAGGING=false -DGC_TYPE=MARK_SWEEP   -DCACHE_INTEGER=false"
   - CONF="-DUSE_TAGGING=false -DGC_TYPE=COPYING      -DCACHE_INTEGER=false"
+
+matrix:
+  exclude:
+    - os: osx
+      compiler: gcc
 
 script:
     - cmake . $CONF
