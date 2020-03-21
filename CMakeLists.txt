@@ -141,13 +141,19 @@ target_sources(unittests PRIVATE
 target_compile_options(unittests PRIVATE
 	-DDEBUG -O0 -g -DUNITTESTS)
 
-target_include_directories(unittests PRIVATE
-	${SRC_DIR}
-	/opt/local/include)
-
 find_library(LIB_CPPUNIT
 	NAMES cppunit
 	HINTS /opt/local/lib)
+
+find_path(LIB_CPPUNIT_INCLUDE_DIR cppunit/TestCase.h
+       /opt/local/include
+       /usr/local/include
+       /usr/include
+)
+
+target_include_directories(unittests PRIVATE
+       ${SRC_DIR}
+       ${LIB_CPPUNIT_INCLUDE_DIR})
 
 target_link_libraries(unittests ${LIB_CPPUNIT})
 
