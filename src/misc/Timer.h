@@ -34,7 +34,7 @@ public:
     inline void Halt() {
         int64_t end = get_microseconds();
 
-        total = end - last_start;
+        total += (end - last_start);
     }
 
     double GetTotalTime() {
