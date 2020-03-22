@@ -34,8 +34,6 @@ class VMFrame: public VMObject {
     friend class Universe;
 public:
     typedef GCFrame Stored;
-    
-    static VMFrame* EmergencyFrameFrom(VMFrame* from, long extraLength);
 
     VMFrame(long size, long nof = 0);
 

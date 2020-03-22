@@ -119,9 +119,11 @@ size_t MethodGenerationContext::GetNumberOfArguments() {
 uint8_t MethodGenerationContext::ComputeStackDepth() {
     uint8_t depth = 0;
     uint8_t maxDepth = 0;
+    uint8_t unknownSendDepth = 0;
     unsigned int i = 0;
 
     while (i < bytecode.size()) {
+        unknownSendDepth = 0;
         switch (bytecode[i]) {
         case BC_HALT:
             i++;
@@ -138,8 +140,14 @@ uint8_t MethodGenerationContext::ComputeStackDepth() {
         case BC_PUSH_FIELD:
         case BC_PUSH_BLOCK:
         case BC_PUSH_CONSTANT:
+            depth++;
+            i += 2;
+            break;
         case BC_PUSH_GLOBAL:
             depth++;
+            // unknown global requires 2 slots for the send. 
+            // since we are counting the global value we only have to add 1
+            unknownSendDepth = depth + 1;
             i += 2;
             break;
         case BC_POP:
@@ -155,23 +163,36 @@ uint8_t MethodGenerationContext::ComputeStackDepth() {
             depth--;
             i += 2;
             break;
-        case BC_SEND:
+        case BC_SEND: {
+            // these are special: they need to look at the number of
+            // arguments (extractable from the signature)
+            VMSymbol* sig = static_cast<VMSymbol*>(literals.Get(bytecode[i + 1]));
+            depth -= Signature::GetNumberOfArguments(sig);
+            depth++; // return value
+            // unknown send requires 3 slots for the send. 
+            // since we are counting the return value we only have to add 2
+            unknownSendDepth = depth + 2;
+            i += 2;
+            break;
+        }
         case BC_SUPER_SEND: {
             // these are special: they need to look at the number of
             // arguments (extractable from the signature)
             VMSymbol* sig = static_cast<VMSymbol*>(literals.Get(bytecode[i + 1]));
-
             depth -= Signature::GetNumberOfArguments(sig);
-
             depth++; // return value
             i += 2;
             break;
         }
         case BC_RETURN_LOCAL:
-        case BC_RETURN_NON_LOCAL: {
             i++;
             break;
-        }
+        case BC_RETURN_NON_LOCAL:
+            // an escaped local requires 2 slots for the send. 
+            // since we are counting the return value we only have to add 1
+            unknownSendDepth = depth + 1;
+            i++;
+            break;
         case BC_JUMP_IF_FALSE:
         case BC_JUMP_IF_TRUE:
             depth--;
@@ -188,6 +209,8 @@ uint8_t MethodGenerationContext::ComputeStackDepth() {
 
         if (depth > maxDepth)
             maxDepth = depth;
+        if (unknownSendDepth > maxDepth)
+            maxDepth = unknownSendDepth;
     }
 
     return maxDepth;

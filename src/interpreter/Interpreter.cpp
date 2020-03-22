@@ -278,12 +278,8 @@ void Interpreter::send(VMSymbol* signature, VMClass* receiverClass) {
 
         //check if current frame is big enough for this unplanned Send
         //doesNotUnderstand: needs 3 slots, one for this, one for method name, one for args
-        long additionalStackSlots = 3 - GetFrame()->RemainingStackSize();
-        if (additionalStackSlots > 0) {
-            GetFrame()->SetBytecodeIndex(bytecodeIndexGlobal);
-            //copy current frame into a bigger one and replace the current frame
-            SetFrame(VMFrame::EmergencyFrameFrom(GetFrame(), additionalStackSlots));
-        }
+        long remainingStackSize = GetFrame()->RemainingStackSize();
+        assert(remainingStackSize >= 3);
 
         AS_OBJ(receiver)->Send(this, doesNotUnderstand, arguments, 2);
     }
@@ -366,12 +362,8 @@ void Interpreter::doPushGlobal(long bytecodeIndex) {
 
         //check if there is enough space on the stack for this unplanned Send
         //unknowGlobal: needs 2 slots, one for "this" and one for the argument
-        long additionalStackSlots = 2 - GetFrame()->RemainingStackSize();
-        if (additionalStackSlots > 0) {
-            GetFrame()->SetBytecodeIndex(bytecodeIndexGlobal);
-            //copy current frame into a bigger one and replace the current frame
-            SetFrame(VMFrame::EmergencyFrameFrom(GetFrame(), additionalStackSlots));
-        }
+        long remainingStackSize = GetFrame()->RemainingStackSize();
+        assert(remainingStackSize >= 2);
 
         AS_OBJ(self)->Send(this, unknownGlobal, arguments, 1);
     }
@@ -485,12 +477,8 @@ void Interpreter::doReturnNonLocal() {
 
         // check if current frame is big enough for this unplanned send
         // #escapedBlock: needs 2 slots, one for self, and one for the block
-        long additionalStackSlots = 2 - GetFrame()->RemainingStackSize();
-        if (additionalStackSlots > 0) {
-            GetFrame()->SetBytecodeIndex(bytecodeIndexGlobal);
-            // copy current frame into a bigger one, and replace it
-            SetFrame(VMFrame::EmergencyFrameFrom(GetFrame(), additionalStackSlots));
-        }
+        long remainingStackSize = GetFrame()->RemainingStackSize();
+        assert(remainingStackSize >= 2);
 
         AS_OBJ(sender)->Send(this, escapedBlock, arguments, 1);
         return;

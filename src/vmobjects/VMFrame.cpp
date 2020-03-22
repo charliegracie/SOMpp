@@ -35,51 +35,6 @@
 
 #include <vm/Universe.h>
 
-// when doesNotUnderstand or UnknownGlobal is sent, additional stack slots might
-// be necessary, as these cases are not taken into account when the stack
-// depth is calculated. In that case this method is called.
-VMFrame* VMFrame::EmergencyFrameFrom(VMFrame* from, long extraLength) {
-    VMMethod* method = from->GetMethod();
-    long length = method->GetNumberOfArguments()
-                    + method->GetNumberOfLocals()
-                    + method->GetMaximumNumberOfStackElements()
-                    + extraLength;
-
-    long additionalBytes = length * sizeof(VMObject*);
-    VMFrame* result = new (GetHeap<HEAP_CLS>(), additionalBytes) VMFrame(length);
-
-    result->clazz = nullptr; // result->SetClass(from->GetClass());
-
-    // set Frame members
-    result->SetPreviousFrame(from->GetPreviousFrame());
-    result->SetMethod(method);
-    result->SetContext(from->GetContext());
-    result->stack_ptr = (gc_oop_t*)SHIFTED_PTR(result, (size_t)from->stack_ptr - (size_t)from);
-
-    result->bytecodeIndex = from->bytecodeIndex;
-    // result->arguments is set in VMFrame constructor
-    result->locals = result->arguments + method->GetNumberOfArguments();
-
-    // all other fields are indexable via arguments
-    // --> until end of Frame
-    gc_oop_t* from_end   = (gc_oop_t*) SHIFTED_PTR(from,   from->GetObjectSize());
-    gc_oop_t* result_end = (gc_oop_t*) SHIFTED_PTR(result, result->GetObjectSize());
-
-    long i = 0;
-
-    // copy all fields from other frame
-    while (from->arguments + i < from_end) {
-        result->arguments[i] = from->arguments[i];
-        i++;
-    }
-    // initialize others with nilObject
-    while (result->arguments + i < result_end) {
-        result->arguments[i] = nilObject;
-        i++;
-    }
-    return result;
-}
-
 VMFrame* VMFrame::Clone() const {
     size_t addSpace = objectSize - sizeof(VMFrame);
     VMFrame* clone = new (GetHeap<HEAP_CLS>(), addSpace ALLOC_MATURE) VMFrame(*this);
